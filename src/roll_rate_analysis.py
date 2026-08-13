@@ -13,7 +13,7 @@ import pandas as pd
 import os
 from src.visualize import save_heatmap
 
-DB_PATH = "data/credit_risk.db"
+DB_PATH = "datasets/credit_risk.db"
 SQL_PATH = "sql/03_roll_rate_analysis.sql"
 EXPORT_DIR = "outputs/powerbi_exports"
 

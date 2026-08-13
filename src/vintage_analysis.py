@@ -12,7 +12,7 @@ import pandas as pd
 import os
 from src.visualize import save_heatmap, save_lineplot
 
-DB_PATH = "data/credit_risk.db"
+DB_PATH = "datasets/credit_risk.db"
 SQL_PATH = "sql/02_vintage_analysis.sql"
 EXPORT_DIR = "outputs/powerbi_exports"
 

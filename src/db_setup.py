@@ -1,20 +1,20 @@
 """
 db_setup.py
 -----------
-Creates the SQLite database and loads the generated CSVs into it using
-the schema defined in sql/01_schema.sql.
+Creates the SQLite database and loads the CSVs from datasets/raw/ into it
+using the schema defined in sql/01_schema.sql.
 """
 
 import sqlite3
 import pandas as pd
 import os
 
-DB_PATH = "data/credit_risk.db"
+DB_PATH = "datasets/credit_risk.db"
 SCHEMA_PATH = "sql/01_schema.sql"
 
 
 def build_database():
-    os.makedirs("data", exist_ok=True)
+    os.makedirs("datasets", exist_ok=True)
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
 
@@ -22,8 +22,8 @@ def build_database():
     with open(SCHEMA_PATH, "r") as f:
         conn.executescript(f.read())
 
-    customers = pd.read_csv("data/raw/customers.csv")
-    performance = pd.read_csv("data/raw/monthly_performance.csv")
+    customers = pd.read_csv("datasets/raw/customers.csv")
+    performance = pd.read_csv("datasets/raw/monthly_performance.csv")
 
     customers.to_sql("customers", conn, if_exists="append", index=False)
     performance.to_sql("monthly_performance", conn, if_exists="append", index=False)

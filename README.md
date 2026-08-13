@@ -28,26 +28,30 @@ This project answers three questions a Risk Analyst is expected to own:
 
 ## Data
 
-The dataset is **synthetically generated** (see `data/generate_data.py`)
-using a Markov-chain simulation calibrated so that Prime / Near-Prime /
-Subprime segments have realistic, differentiated transition behavior
-between delinquency states. This was a deliberate choice over using a
-public dataset — real loan-level monthly performance panels (the kind
-risk teams actually work with) aren't publicly available, so simulating
-one with realistic transition dynamics is the closest honest substitute.
-Every script in this repo works unmodified against a real servicing
-extract if you swap the data source.
+This project runs on loan-level monthly performance data placed in
+`datasets/raw/`:
 
-- **~22,600 customers** across **23 monthly origination vintages**
-- **~270,000 monthly performance snapshots**
-- DPD buckets: `Current → DPD_30 → DPD_60 → DPD_90_PLUS → Charged_Off`,
-  plus a `Paid_Off` exit state
+```
+datasets/raw/customers.csv
+datasets/raw/monthly_performance.csv
+```
+
+- `customers.csv` — one row per account (vintage/origination month,
+  credit score band, income band, region, loan purpose, origination
+  balance)
+- `monthly_performance.csv` — one row per account per reporting month
+  (months on book, DPD bucket, balance)
+
+DPD buckets used throughout the SQL and analysis: `Current → DPD_30 →
+DPD_60 → DPD_90_PLUS → Charged_Off`, plus a `Paid_Off` exit state. If
+your source data uses different column names or different bucket
+labels, either rename them to match before running, or adjust
+`src/db_setup.py` accordingly.
 
 ## Tech stack
 
 | Layer | Tools |
 |---|---|
-| Data generation | Python (numpy, pandas) |
 | Storage / querying | SQLite, raw SQL (window functions: `LAG`, CTEs) |
 | Analysis | Python (pandas) |
 | Visualization | seaborn, matplotlib, plotly |
@@ -62,9 +66,8 @@ predictive model.
 
 ```
 credit-risk-rollrate-analysis/
-├── data/
-│   ├── generate_data.py          # synthetic data generator (Markov simulation)
-│   └── raw/                      # generated CSVs (created on first run)
+├── datasets/
+│   └── raw/                      # <- place customers.csv and monthly_performance.csv here
 ├── sql/
 │   ├── 01_schema.sql             # table definitions
 │   ├── 02_vintage_analysis.sql   # vintage curve query
@@ -87,7 +90,16 @@ credit-risk-rollrate-analysis/
 
 ## How to run
 
-### 1. Set up the environment
+### 1. Place your data
+
+Put your two CSVs in `datasets/raw/`:
+
+```
+datasets/raw/customers.csv
+datasets/raw/monthly_performance.csv
+```
+
+### 2. Set up the environment
 
 ```bash
 cd credit-risk-rollrate-analysis
@@ -96,27 +108,24 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Run the full pipeline
+### 3. Run the full pipeline
 
 ```bash
 python run_all.py
 ```
 
 This single command will:
-1. Generate the synthetic loan-level dataset (`data/raw/*.csv`)
-2. Build the SQLite database (`data/credit_risk.db`)
-3. Run the vintage-curve SQL query and save charts + a Power BI CSV export
-4. Run the roll-rate SQL query and save charts + a Power BI CSV export
-5. Run the segment-trend SQL query and save charts + a Power BI CSV export
+1. Build the SQLite database (`datasets/credit_risk.db`) from your CSVs
+2. Run the vintage-curve SQL query and save charts + a Power BI CSV export
+3. Run the roll-rate SQL query and save charts + a Power BI CSV export
+4. Run the segment-trend SQL query and save charts + a Power BI CSV export
 
-Takes about 15–20 seconds end to end.
-
-### 3. Explore the outputs
+### 4. Explore the outputs
 
 - **Charts:** open the `.png` and `.html` files in `outputs/charts/`
-- **SQL:** open `data/credit_risk.db` directly:
+- **SQL:** open `datasets/credit_risk.db` directly:
   ```bash
-  sqlite3 data/credit_risk.db
+  sqlite3 datasets/credit_risk.db
   sqlite> .read sql/03_roll_rate_analysis.sql
   ```
 - **Power BI:** follow `powerbi/DASHBOARD_GUIDE.md` — import the three
@@ -126,7 +135,6 @@ Takes about 15–20 seconds end to end.
 ### Run steps individually (optional)
 
 ```bash
-python -m data.generate_data
 python -m src.db_setup
 python -m src.vintage_analysis
 python -m src.roll_rate_analysis
@@ -143,7 +151,7 @@ python -m src.segment_analysis
 | `roll_rate_matrix_{band}.png` | Same, split by credit score band |
 | `segment_delinquency_trend.html` | Interactive 30+ DPD rate trend by segment |
 
-## Sample findings (from the generated dataset)
+## Sample findings
 
 - Subprime accounts roll from `DPD_30 → DPD_60` at a meaningfully higher
   rate than Prime accounts, confirming the transition model — but more
